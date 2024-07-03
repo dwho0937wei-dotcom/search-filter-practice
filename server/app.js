@@ -39,13 +39,13 @@ app.get('/musicians', async (req, res, next) => {
     // End result: { where: { firstName: req.query.firstName } }
 
     // Your code here 
-    query.where.firstName = req.query.firstName;
+    if (req.query.firstName) query.where.firstName = req.query.firstName;
     
     // Add keys to the WHERE clause to match the lastName param, if it exists.
     // End result: { where: { lastName: req.query.lastName } }
     
     // Your code here 
-    query.where.lastName = req.query.lastName;
+    if (req.query.lastName) query.where.lastName = req.query.lastName;
 
     // STEP 2: WHERE clauses on the associated Band model
     // ?bandName=XX
@@ -54,7 +54,25 @@ app.get('/musicians', async (req, res, next) => {
     // End result: { include: [{ model: Band, where: { name: req.query.bandName } }] }
 
     // Your code here 
-    query.include.push({ model: Band, where: { name: req.query.bandName }});
+    if (req.query.bandName) {
+        const band = { model: Band, where: { name: req.query.bandName } };
+
+        if (req.query.bandFields) {
+            const bandFields = req.query.bandFields;
+            if (bandFields.includes('all')) {
+                band.attributes = undefined;
+            }
+            else if (bandFields.includes('none')) {
+                band.attributes = [];
+            }
+            else {
+                band.attributes = bandFields;
+            }
+        }
+
+        query.include.push(band);
+    }
+
 
     // STEP 3: WHERE Clauses on the associated Instrument model 
     // ?instrumentTypes[]=XX&instrumentTypes[]=YY
@@ -72,7 +90,24 @@ app.get('/musicians', async (req, res, next) => {
     */
 
     // Your code here 
-    query.include.push({ model: Instrument, where: { type: req.query.instrumentTypes }, through: { attributes: [] } });
+    if (req.query.instrumentTypes) {
+        const instrument = { model: Instrument, where: { type: req.query.instrumentTypes }, through: { attributes: [] } };
+
+        if (req.query.instrumentFields) {
+            const instrumentFields = req.query.instrumentFields;
+            if (instrumentFields.includes('all')) {
+                instrument.attributes = undefined;
+            }
+            else if (instrumentFields.includes('none')) {
+                instrument.attributes = [];
+            }
+            else {
+                instrument.attributes = instrumentFields;
+            }
+        }
+
+        query.include.push(instrument);
+    }
 
     // BONUS STEP 4: Specify Musician attributes to be returned
     // ?&musicianFields[]=XX&musicianFields[]=YY
@@ -84,7 +119,18 @@ app.get('/musicians', async (req, res, next) => {
     // If any other attributes are provided, only include those values
 
     // Your code here 
-    
+    if (req.query.musicianFields) {
+        const musicianFields = req.query.musicianFields;
+        if (musicianFields.includes('all')) {
+            query.attributes = undefined;
+        }
+        else if (musicianFields.includes('none')) {
+            query.attributes = [];
+        }
+        else {
+            query.attributes = musicianFields;
+        }
+    }
 
     // BONUS STEP 5: Specify attributes to be returned
     // These additions should be included in your previously implemented 
@@ -106,7 +152,6 @@ app.get('/musicians', async (req, res, next) => {
         }
     */
 
-
     // BONUS STEP 6: Order Options
     // ?order[]=XX,xx&order[]=YY&order[]=ZZ,zz
     // Add a key to the query object that will order the results by the Musician 
@@ -121,7 +166,11 @@ app.get('/musicians', async (req, res, next) => {
     // End result: { order: [['firstName', 'asc'], ['lastName'], ['createdAt', 'desc']] }
 
     // Your code here 
-
+    if (req.query.order) {
+        let order = req.query.order;
+        order = order.map(ele => ele.split(','));
+        query.order = order;
+    }
 
     // Perform compiled query
     const musicians = await Musician.findAndCountAll(query);
